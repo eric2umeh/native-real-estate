@@ -15,9 +15,9 @@ export default function AppLayout() {
     );
   }
 
-  if (!isLogged) {
-    return <Redirect href="/sign-in" />;
-  }
+  // if (!isLogged) {
+    // return <Redirect href="/sign-in" />;
+  // }
 
   return <Slot />;
 }
