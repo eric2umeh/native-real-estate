@@ -1,55 +1,74 @@
-import { Alert } from "react-native";
-import { useEffect, useState, useCallback } from "react";
+"use client"
 
-interface UseAppwriteOptions<T, P extends Record<string, string | number>> {
-  fn: (params: P) => Promise<T>;
-  params?: P;
-  skip?: boolean;
-}
+import { useEffect, useState, useCallback, useRef } from "react"
 
-interface UseAppwriteReturn<T, P> {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
-  refetch: (newParams: P) => Promise<void>;
-}
+export const useAppwrite = <T, P = Record<string, unknown>>(
+  fn: (params?: P) => Promise<T>,
+  params?: P,
+  options?: { skip?: boolean },
+) => {
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState(!options?.skip)
+  const [error, setError] = useState<string | null>(null)
+  const mountedRef = useRef(true)
+  const paramsRef = useRef(params)
 
-export const useAppwrite = <T, P extends Record<string, string | number>>({
-  fn,
-  params = {} as P,
-  skip = false,
-}: UseAppwriteOptions<T, P>): UseAppwriteReturn<T, P> => {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(!skip);
-  const [error, setError] = useState<string | null>(null);
+  // Update params ref when params change
+  useEffect(() => {
+    paramsRef.current = params
+  }, [params])
 
   const fetchData = useCallback(
-    async (fetchParams: P) => {
-      setLoading(true);
-      setError(null);
+    async (customParams?: P) => {
+      if (!mountedRef.current) return
 
       try {
-        const result = await fn(fetchParams);
-        setData(result);
+        setLoading(true)
+        setError(null)
+
+        const finalParams = customParams || paramsRef.current
+        const result = await fn(finalParams)
+
+        if (mountedRef.current) {
+          setData(result)
+        }
       } catch (err: unknown) {
-        const errorMessage =
-          err instanceof Error ? err.message : "An unknown error occurred";
-        setError(errorMessage);
-        Alert.alert("Error", errorMessage);
+        if (!mountedRef.current) return
+
+        const message = err instanceof Error ? err.message : "Unknown error"
+        setError(message)
+
+        // Only show alert for non-authentication errors
+        if (!message.includes("401") && !message.includes("timeout")) {
+          console.error("API Error:", message)
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false)
+        }
       }
     },
-    [fn]
-  );
+    [fn],
+  )
 
   useEffect(() => {
-    if (!skip) {
-      fetchData(params);
+    if (!options?.skip) {
+      fetchData()
     }
-  }, []);
 
-  const refetch = async (newParams: P) => await fetchData(newParams);
+    return () => {
+      mountedRef.current = false
+    }
+  }, [fetchData, options?.skip])
 
-  return { data, loading, error, refetch };
-};
+  const refetch = useCallback(
+    (customParams?: P) => {
+      if (mountedRef.current) {
+        fetchData(customParams)
+      }
+    },
+    [fetchData],
+  )
+
+  return { data, loading, error, refetch }
+}

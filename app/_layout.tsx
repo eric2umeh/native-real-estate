@@ -1,34 +1,70 @@
-import { useEffect } from "react";
-import { Stack } from "expo-router";
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
+"use client"
 
-import "./global.css";
-import GlobalProvider from "@/lib/global-provider";
+import { useEffect, useState, useCallback } from "react"
+import { Stack } from "expo-router"
+import * as SplashScreen from "expo-splash-screen"
+import { View, Text } from "react-native"
+import * as Font from "expo-font"
+
+import "./global.css"
+import { GlobalProvider } from "@/lib/global-provider"
+import ErrorBoundary from "@/components/ErrorBoundary"
+
+// Prevent the splash screen from auto-hiding
+SplashScreen.preventAutoHideAsync()
+
+const customFonts = {
+  "Rubik-Bold": require("../assets/fonts/Rubik-Bold.ttf"),
+  "Rubik-ExtraBold": require("../assets/fonts/Rubik-ExtraBold.ttf"),
+  "Rubik-Light": require("../assets/fonts/Rubik-Light.ttf"),
+  "Rubik-Medium": require("../assets/fonts/Rubik-Medium.ttf"),
+  "Rubik-Regular": require("../assets/fonts/Rubik-Regular.ttf"),
+  "Rubik-SemiBold": require("../assets/fonts/Rubik-SemiBold.ttf"),
+}
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    "Rubik-Bold": require("../assets/fonts/Rubik-Bold.ttf"),
-    "Rubik-ExtraBold": require("../assets/fonts/Rubik-ExtraBold.ttf"),
-    "Rubik-Light": require("../assets/fonts/Rubik-Light.ttf"),
-    "Rubik-Medium": require("../assets/fonts/Rubik-Medium.ttf"),
-    "Rubik-Regular": require("../assets/fonts/Rubik-Regular.ttf"),
-    "Rubik-SemiBold": require("../assets/fonts/Rubik-SemiBold.ttf"),
-  });
+  const [appIsReady, setAppIsReady] = useState(false)
+  const [fontError, setFontError] = useState<Error | null>(null)
+
+  const loadResourcesAndDataAsync = useCallback(async () => {
+    try {
+      // Load fonts
+      await Font.loadAsync(customFonts)
+    } catch (e) {
+      console.warn("Font loading error:", e)
+      setFontError(e as Error)
+    } finally {
+      setAppIsReady(true)
+    }
+  }, [])
 
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
+    loadResourcesAndDataAsync()
+  }, [loadResourcesAndDataAsync])
 
-  if (!fontsLoaded) {
-    return null;
+  useEffect(() => {
+    if (appIsReady) {
+      SplashScreen.hideAsync()
+    }
+  }, [appIsReady])
+
+  if (!appIsReady) {
+    return null
+  }
+
+  if (fontError) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Error loading fonts: {fontError.message}</Text>
+      </View>
+    )
   }
 
   return (
-    <GlobalProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </GlobalProvider>
-  );
+    <ErrorBoundary>
+      <GlobalProvider>
+        <Stack screenOptions={{ headerShown: false }} />
+      </GlobalProvider>
+    </ErrorBoundary>
+  )
 }

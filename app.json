@@ -20,10 +20,16 @@
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.nativerealestate"
     },
+    "assetBundlePatterns": ["**/*"],
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "build": {
+        "babel": {
+          "include": ["react-native-vector-icons"]
+        }
+      }
     },
     "plugins": [
       "expo-router",
@@ -52,6 +58,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
     }
   }
 }

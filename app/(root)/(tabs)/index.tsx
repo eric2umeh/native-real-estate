@@ -1,153 +1,134 @@
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useEffect } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+// app/(root)/(tabs)/index.tsx
+import { useState, useEffect } from "react";
+import { View, Text, Image, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from "expo-router";
 
-import icons from "@/constants/icons";
-
+import { Card, FeaturedCard } from "@/components/Cards";
 import Search from "@/components/Search";
 import Filters from "@/components/Filters";
 import NoResults from "@/components/NoResults";
-import { Card, FeaturedCard } from "@/components/Cards";
-
-import { useAppwrite } from "@/lib/useAppwrite";
+import icons from "@/constants/icons";
 import { useGlobalContext } from "@/lib/global-provider";
 import { getLatestProperties, getProperties } from "@/lib/appwrite";
+import { useAppwrite } from "@/lib/useAppwrite";
 
 const Home = () => {
   const { user } = useGlobalContext();
+  const params = useLocalSearchParams();
+  
+  const [filter, setFilter] = useState(params.filter || "All");
+  const [query, setQuery] = useState(params.query || "");
 
-  const params = useLocalSearchParams<{ query?: string; filter?: string }>();
-
-  const { data: latestProperties, loading: latestPropertiesLoading } =
-    useAppwrite({
-      fn: getLatestProperties,
-    });
+  const { 
+    data: latestProperties, 
+    loading: loadingLatest 
+  } = useAppwrite(getLatestProperties);
 
   const {
     data: properties,
-    refetch,
-    loading,
-  } = useAppwrite({
-    fn: getProperties,
-    params: {
-      filter: params.filter!,
-      query: params.query!,
-      limit: 6,
-    },
-    skip: true,
-  });
+    loading: loadingProperties,
+    refetch
+  } = useAppwrite(getProperties, { filter, query, limit: 6 });
 
   useEffect(() => {
-    refetch({
-      filter: params.filter!,
-      query: params.query!,
-      limit: 6,
-    });
+    if (params.filter !== filter || params.query !== query) {
+      setFilter(params.filter || "All");
+      setQuery(params.query || "");
+      refetch();
+    }
   }, [params.filter, params.query]);
 
-  const handleCardPress = (id: string) => router.push(`/properties/${id}`);
+  const handleCardPress = (id: string) => {
+    router.push(`/properties/${id}`);
+  };
+
+  if (!user) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center bg-white">
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView className="h-full bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <FlatList
-        data={properties}
-        numColumns={2}
-        renderItem={({ item }) => (
-          <Card item={item} onPress={() => handleCardPress(item.$id)} />
-        )}
+        data={properties || []}
         keyExtractor={(item) => item.$id}
-        contentContainerClassName="pb-32"
-        columnWrapperClassName="flex gap-5 px-5"
-        showsVerticalScrollIndicator={false}
+        numColumns={2}
         ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator size="large" className="text-primary-300 mt-5" />
+          loadingProperties ? (
+            <ActivityIndicator size="large" className="my-8" />
           ) : (
             <NoResults />
           )
         }
-        ListHeaderComponent={() => (
+        ListHeaderComponent={
           <View className="px-5">
-            <View className="flex flex-row items-center justify-between mt-5">
-              <View className="flex flex-row">
+            {/* Header with user info */}
+            <View className="flex-row justify-between items-center mt-5">
+              <View className="flex-row items-center">
                 <Image
-                  source={{ uri: user?.avatar }}
-                  className="size-12 rounded-full"
+                  source={{ uri: user.avatar }}
+                  className="w-12 h-12 rounded-full"
                 />
-
-                <View className="flex flex-col items-start ml-2 justify-center">
-                  <Text className="text-xs font-rubik text-black-100">
-                    Good Morning
-                  </Text>
-                  <Text className="text-base font-rubik-medium text-black-300">
-                    {user?.name}
-                  </Text>
+                <View className="ml-2">
+                  <Text className="text-xs text-gray-500">Good Morning</Text>
+                  <Text className="text-base font-medium">{user.name}</Text>
                 </View>
               </View>
-              <Image source={icons.bell} className="size-6" />
+              <Image source={icons.bell} className="w-6 h-6" />
             </View>
 
-            <Search />
+            <Search initialQuery={query} />
 
+            {/* Featured Properties */}
             <View className="my-5">
-              <View className="flex flex-row items-center justify-between">
-                <Text className="text-xl font-rubik-bold text-black-300">
-                  Featured
-                </Text>
+              <View className="flex-row justify-between items-center">
+                <Text className="text-xl font-bold">Featured</Text>
                 <TouchableOpacity>
-                  <Text className="text-base font-rubik-bold text-primary-300">
-                    See all
-                  </Text>
+                  <Text className="text-blue-500 font-bold">See all</Text>
                 </TouchableOpacity>
               </View>
 
-              {latestPropertiesLoading ? (
-                <ActivityIndicator size="large" className="text-primary-300" />
-              ) : !latestProperties || latestProperties.length === 0 ? (
-                <NoResults />
+              {loadingLatest ? (
+                <ActivityIndicator size="large" className="my-4" />
               ) : (
                 <FlatList
-                  data={latestProperties}
+                  horizontal
+                  data={latestProperties || []}
                   renderItem={({ item }) => (
-                    <FeaturedCard
-                      item={item}
-                      onPress={() => handleCardPress(item.$id)}
+                    <FeaturedCard 
+                      item={item} 
+                      onPress={() => handleCardPress(item.$id)} 
                     />
                   )}
                   keyExtractor={(item) => item.$id}
-                  horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerClassName="flex gap-5 mt-5"
+                  contentContainerClassName="gap-5 mt-5"
                 />
               )}
             </View>
 
-            {/* <Button title="seed" onPress={seed} /> */}
-
+            {/* Recommendations */}
             <View className="mt-5">
-              <View className="flex flex-row items-center justify-between">
-                <Text className="text-xl font-rubik-bold text-black-300">
-                  Our Recommendation
-                </Text>
+              <View className="flex-row justify-between items-center">
+                <Text className="text-xl font-bold">Our Recommendation</Text>
                 <TouchableOpacity>
-                  <Text className="text-base font-rubik-bold text-primary-300">
-                    See all
-                  </Text>
+                  <Text className="text-blue-500 font-bold">See all</Text>
                 </TouchableOpacity>
               </View>
-
-              <Filters />
+              <Filters currentFilter={filter} />
             </View>
           </View>
+        }
+        renderItem={({ item }) => (
+          <Card item={item} onPress={() => handleCardPress(item.$id)} />
         )}
+        contentContainerClassName="pb-32"
+        columnWrapperClassName="gap-5 px-5"
+        showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   );
