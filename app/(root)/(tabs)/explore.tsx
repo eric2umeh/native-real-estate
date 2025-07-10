@@ -1,67 +1,52 @@
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  SafeAreaView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useEffect } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+"use client"
 
-import icons from "@/constants/icons";
-import Search from "@/components/Search";
-import { Card } from "@/components/Cards";
-import Filters from "@/components/Filters";
-import NoResults from "@/components/NoResults";
+import { ActivityIndicator, FlatList, Image, SafeAreaView, Text, TouchableOpacity, View } from "react-native"
+import { useEffect, useState } from "react"
+import { router, useLocalSearchParams } from "expo-router"
 
-import { getProperties } from "@/lib/appwrite";
-import { useAppwrite } from "@/lib/useAppwrite";
+import icons from "@/constants/icons"
+import Search from "@/components/Search"
+import { Card } from "@/components/Cards"
+import Filters from "@/components/Filters"
+import NoResults from "@/components/NoResults"
+
+import { getProperties } from "@/lib/appwrite"
+import { useAppwrite } from "@/lib/useAppwrite"
 
 const Explore = () => {
-  const params = useLocalSearchParams<{ query?: string; filter?: string }>();
+  const params = useLocalSearchParams<{ query?: string; filter?: string }>()
+  const [searchParams, setSearchParams] = useState({
+    filter: params.filter || "All",
+    query: params.query || "",
+    limit: 20,
+  })
 
-  const {
-    data: properties,
-    refetch,
-    loading,
-  } = useAppwrite({
-    fn: getProperties,
-    params: {
-      filter: params.filter!,
-      query: params.query!,
-    },
-    skip: true,
-  });
+  const { data: properties, refetch, loading } = useAppwrite(getProperties, searchParams)
 
   useEffect(() => {
-    refetch({
-      filter: params.filter!,
-      query: params.query!,
-    });
-  }, [params.filter, params.query]);
+    const newParams = {
+      filter: params.filter || "All",
+      query: params.query || "",
+      limit: 20,
+    }
+    setSearchParams(newParams)
+    refetch(newParams)
+  }, [params.filter, params.query, refetch])
 
-  const handleCardPress = (id: string) => router.push(`/properties/${id}`);
+  const handleCardPress = (id: string) => router.push(`/properties/${id}`)
 
   return (
     <SafeAreaView className="h-full bg-white">
       <FlatList
-        data={properties}
+        data={properties || []}
         numColumns={2}
-        renderItem={({ item }) => (
-          <Card item={item} onPress={() => handleCardPress(item.$id)} />
-        )}
+        renderItem={({ item }) => <Card item={item} onPress={() => handleCardPress(item.$id)} />}
         keyExtractor={(item) => item.$id}
         contentContainerClassName="pb-32"
         columnWrapperClassName="flex gap-5 px-5"
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator size="large" className="text-primary-300 mt-5" />
-          ) : (
-            <NoResults />
-          )
+          loading ? <ActivityIndicator size="large" className="text-primary-300 mt-5" /> : <NoResults />
         }
         ListHeaderComponent={() => (
           <View className="px-5">
@@ -85,14 +70,14 @@ const Explore = () => {
               <Filters />
 
               <Text className="text-xl font-rubik-bold text-black-300 mt-5">
-                Found {properties?.length} Properties
+                Found {properties?.length || 0} Properties
               </Text>
             </View>
           </View>
         )}
       />
     </SafeAreaView>
-  );
-};
+  )
+}
 
-export default Explore;
+export default Explore
