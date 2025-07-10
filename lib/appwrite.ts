@@ -14,7 +14,7 @@ export const client = new Client()
 try {
   client.setEndpoint(AppwriteConfig.endpoint).setProject(AppwriteConfig.projectId).setPlatform(AppwriteConfig.platform)
 
-  console.log("Appwrite client initialized successfully")
+  console.log("Appwrite client initialized successfully.")
 } catch (error) {
   console.error("Failed to initialize Appwrite client:", error)
 }
