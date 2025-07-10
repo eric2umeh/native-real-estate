@@ -131,9 +131,8 @@ export async function getProperties({
     }
 
     if (query && query.trim()) {
-      queries.push(
-        Query.or([Query.search("name", query), Query.search("address", query), Query.search("description", query)]),
-      )
+      // Only search by name and address (remove description search)
+      queries.push(Query.or([Query.search("name", query), Query.search("address", query)]))
     }
 
     const result = await databases.listDocuments(

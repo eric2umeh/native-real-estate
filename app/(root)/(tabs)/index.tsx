@@ -1,4 +1,3 @@
-// app/(root)/(tabs)/index.tsx
 import { useState, useEffect } from "react";
 import { View, Text, Image, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
