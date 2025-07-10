@@ -18,6 +18,7 @@ import { useGlobalContext } from "@/lib/global-provider"
 import icons from "@/constants/icons"
 import { settings } from "@/constants/data"
 import { useState } from "react"
+import SeedButton from "@/components/SeedButton"
 
 interface SettingsItemProp {
   icon: ImageSourcePropType
@@ -94,6 +95,10 @@ const Profile = () => {
             <Text className="text-2xl font-rubik-bold mt-2">{user?.name}</Text>
             <Text className="text-sm font-rubik text-black-200 mt-1">{user?.email}</Text>
           </View>
+        </View>
+
+        <View className="flex items-center mt-5 mb-5">
+          <SeedButton />
         </View>
 
         <View className="flex flex-col mt-10">

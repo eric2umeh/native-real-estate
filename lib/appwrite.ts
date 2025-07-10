@@ -1,13 +1,20 @@
 import { Client, Account, Databases, OAuthProvider, Avatars, Query, Storage } from "react-native-appwrite"
 import * as Linking from "expo-linking"
 import { openAuthSessionAsync } from "expo-web-browser"
-import { AppwriteConfig } from "./config"
+import { AppwriteConfig, validateConfig } from "./config"
+
+// Validate configuration before initializing
+if (!validateConfig()) {
+  console.error("Appwrite configuration is invalid. Please check your environment variables.")
+}
 
 // Initialize client
 export const client = new Client()
 
 try {
   client.setEndpoint(AppwriteConfig.endpoint).setProject(AppwriteConfig.projectId).setPlatform(AppwriteConfig.platform)
+
+  console.log("Appwrite client initialized successfully")
 } catch (error) {
   console.error("Failed to initialize Appwrite client:", error)
 }
@@ -17,6 +24,19 @@ export const avatar = new Avatars(client)
 export const account = new Account(client)
 export const databases = new Databases(client)
 export const storage = new Storage(client)
+
+// Test connection function
+export const testConnection = async () => {
+  try {
+    // Test connection by trying to list documents from a collection
+    await databases.listDocuments(AppwriteConfig.databaseId, AppwriteConfig.agentsCollectionId, [Query.limit(1)])
+    console.log("Appwrite connection successful")
+    return true
+  } catch (error) {
+    console.error("Appwrite connection failed:", error)
+    return false
+  }
+}
 
 // Auth functions
 export async function login() {
